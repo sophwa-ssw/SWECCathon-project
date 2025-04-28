@@ -4,7 +4,7 @@ import { View, Text, StyleSheet } from 'react-native';
 const Chat = () => {
   return (
     <View style={styles.newElement}>
-      <Text>Chat</Text>
+      <Text style={styles.text}>Chat</Text>
     </View>
   );
 };
@@ -13,15 +13,18 @@ const styles = StyleSheet.create({
   newElement: {
     height: 280,
     width: 310,
-    backgroundColor: 'white',
+    backgroundColor: '#b7a57a',
     borderRadius: 10,
     borderColor: 'black',
     borderWidth: 2,
     position: 'absolute',
-    top: 550,
+    top: 440,
     left: 15,
     alignItems: 'center'
   },
+  text: {
+    fontSize: 30
+  }
 });
 
 export default Chat;

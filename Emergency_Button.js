@@ -4,16 +4,17 @@ import { View, Text, StyleSheet } from 'react-native';
 const Emergency_Button = () => {
   return (
     <View style={styles.newElement}>
-      <Text>This is the element!</Text>
+      <Text style={styles.text}>Emergency Meeting</Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   newElement: {
-    height: 730,
+    paddingTop: 15,
+    height: 620,
     width: 310,
-    backgroundColor: 'white',
+    backgroundColor: '#b7a57a',
     borderRadius: 10,
     borderColor: 'black',
     borderWidth: 2,
@@ -21,8 +22,10 @@ const styles = StyleSheet.create({
     top: 100,
     left: 15,
     alignItems: 'center',
-    fontSize: 40
   },
+  text: {
+    fontSize: 30
+  }
 });
 
 export default Emergency_Button;
