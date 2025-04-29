@@ -5,7 +5,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
-import Map from './Map';
+import CrewMateMapView from './CrewMateMapView.js';
+import ImposterMapView from './ImposterMapView.js';
 import AdminView from './components/AdminView';
 
 const Tab = createBottomTabNavigator();
@@ -112,13 +113,71 @@ function RoleScreen({ route, navigation }) {
 function HomeScreen({ navigation }) {
   const [code, setCode] = useState('');
 
-  const joinGame = () => {
-    if (!code.trim()) {
-      Alert.alert('Enter a code');
-      return;
-    }
-    navigation.navigate('NameInput', { action: 'join', gameCode: code.trim() });
-  };
+const joinGame = async () => {
+  if (!code.trim()) {
+    Alert.alert('Enter a code');
+    return;
+  }
+
+  // Check if the game with the entered code exists and get the UUID of that game
+  const { data: gameData, error: gameError } = await supabase
+    .from('games')
+    .select('id, max_players')  // Select the id (UUID) and max_players from the games table
+    .eq('code', code.trim())
+    .single();
+
+  if (gameError || !gameData) {
+    console.error(gameError);
+    Alert.alert('Game not found');
+    return;
+  }
+
+  // Get the game's UUID (game_id) and max_players from the gameData
+  const gameId = gameData.id;
+  const maxPlayers = gameData.max_players;
+
+  // Check how many players are currently in the game
+  const { data: playersData, error: playersError } = await supabase
+    .from('players')
+    .select('id')  // Select only the ids of players in this game
+    .eq('game_id', gameId);
+
+  if (playersError) {
+    console.error(playersError);
+    Alert.alert('Error checking current players');
+    return;
+  }
+
+  // If the number of players has reached the maximum, alert the user and return
+  if (playersData.length >= maxPlayers) {
+    Alert.alert('The game is full. Please join a different game.');
+    return;
+  }
+
+  // Randomly assign role
+  const role = Math.random() < 0.5 ? 'Crewmate' : 'Imposter';
+
+  // Insert the new player into the players table
+  const { error: playerError } = await supabase
+    .from('players')
+    .insert([
+      {
+        game_id: gameId,  // Store the UUID in the players table
+        role: role,
+        created_at: new Date().toISOString(),
+        name: name,  // Name of the player
+      },
+    ]);
+
+  if (playerError) {
+    console.error(playerError);
+    Alert.alert('Error joining game');
+  } else {
+    // Navigate to the Role screen with the assigned role and game code
+    navigation.navigate('Role', { role, gameCode: code.trim() });
+  }
+};
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -165,20 +224,82 @@ function HomeScreen({ navigation }) {
 }
 
 function GameScreen({ navigation }) {
+  const [nameInputs, setNameInputs] = useState({}); // Tracks name input per game
   const [search, setSearch] = useState('');
 
   const filteredGames = games.filter(game => 
     game.status === 'in_progress' && 
     game.code.toLowerCase().includes(search.toLowerCase())
+  useEffect(() => {
+    const fetchGames = async () => {
+      const { data, error } = await supabase
+        .from('games')
+        .select('*')
+        .eq('status', 'in_progress');
+
+      if (error) {
+        console.error('Error fetching games:', error);
+      } else {
+        setGames(data || []);
+      }
+    };
+
+    fetchGames();
+  }, []);
+
+  const filteredGames = games.filter(item =>
+    item.code.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handlePress = (game) => {
-    navigation.navigate('NameInput', { action: 'join', gameCode: game.code });
+  const handleNameChange = (gameId, value) => {
+    setNameInputs(prev => ({ ...prev, [gameId]: value }));
+  };
+
+  const joinGame = async (item) => {
+    const name = nameInputs[item.id]?.trim();
+    if (!name) {
+      Alert.alert('Please enter a name');
+      return;
+    }
+
+    const { data: gameData, error: gameError } = await supabase
+      .from('games')
+      .select('*')
+      .eq('code', item.code)
+      .single();
+
+    if (gameError || !gameData) {
+      console.error(gameError);
+      Alert.alert('Game not found');
+      return;
+    }
+
+    const role = Math.random() < 0.5 ? 'Crewmate' : 'Imposter';
+
+    const { error: playerError } = await supabase
+      .from('players')
+      .insert([
+        {
+          name,
+          role,
+          created_at: new Date().toISOString(),
+          game_id: item.id, // <-- use the UUID from the game item
+        },
+      ]);
+
+    if (playerError) {
+      console.error(playerError);
+      Alert.alert('Error joining game');
+    } else {
+      navigation.navigate('Role', { role, gameCode: item.code });
+    }
   };
 
   return (
     <SafeAreaView style={styles.listContainer}>
       <Text style={styles.header}>Available Games</Text>
+
+      {/* Search bar to filter games */}
       <TextInput
         style={styles.searchBar}
         placeholder="Search Games..."
@@ -186,15 +307,14 @@ function GameScreen({ navigation }) {
         value={search}
         onChangeText={setSearch}
       />
+
+      {/* Game list */}
       <FlatList
         data={filteredGames}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.listItem}
-            onPress={() => handlePress(item)}
-          >
+          <View style={styles.listItem}>
             <View style={styles.gameListItem}>
               <Text style={styles.gameCode}>Game Code: {item.code}</Text>
               <Text style={styles.gamePlayers}>
@@ -202,7 +322,17 @@ function GameScreen({ navigation }) {
               </Text>
               <Text style={styles.gameAdmin}>Host: {item.admin}</Text>
             </View>
-          </TouchableOpacity>
+
+            <TextInput
+              style={styles.searchBar}
+              placeholder="Enter Name"
+              placeholderTextColor="#666"
+              value={nameInputs[item.id] || ''}
+              onChangeText={(text) => handleNameChange(item.id, text)}
+              onSubmitEditing={() => joinGame(item)} // Press Enter to join
+              returnKeyType="done"
+            />
+          </View>
         )}
         ListEmptyComponent={
           <View style={styles.emptyList}>
@@ -215,6 +345,33 @@ function GameScreen({ navigation }) {
     </SafeAreaView>
   );
 }
+
+
+
+
+const MapScreen = ({ route }) => {
+  const role = route?.params?.role || 'Crewmate'; // default to Crewmate
+
+  return (
+    <View style={{ flex: 1 }}>
+      {role === 'Crewmate' ? <CrewMateMapView /> : <ImposterMapView />}
+    </View>
+  );
+};
+
+
+
+function HelpScreen() {
+  return (
+    <SafeAreaView style={styles.centerPlaceholder}>
+      <Text style={styles.titleSecondary}>Help & Instructions</Text>
+      <Text style={styles.paragraph}>
+        Welcome to Husky Seeker! Join games, complete tasks around campus, and identify the imposter before they sabotage your team.
+      </Text>
+    </SafeAreaView>
+  );
+}
+
 
 function CreateGameScreen({ navigation }) {
   const [innocents, setInnocents] = useState('');
