@@ -39,47 +39,50 @@ function HomeScreen({ navigation }) {
   const [name, setName] = useState('');
 
   const joinGame = async () => {
-    if (!code.trim()) {
-      Alert.alert('Enter a code');
-      return;
-    }
+  if (!code.trim()) {
+    Alert.alert('Enter a code');
+    return;
+  }
 
-    // Check if the game with the entered code exists
-    const { data: gameData, error: gameError } = await supabase
-      .from('games')
-      .select('*')
-      .eq('code', code.trim())
-      .single();
+  // Check if the game with the entered code exists and get the UUID of that game
+  const { data: gameData, error: gameError } = await supabase
+    .from('games')
+    .select('id')  // Select only the id (UUID) from the games table
+    .eq('code', code.trim())
+    .single();
 
-    if (gameError || !gameData) {
-      console.error(gameError);
-      Alert.alert('Game not found');
-      return;
-    }
+  if (gameError || !gameData) {
+    console.error(gameError);
+    Alert.alert('Game not found');
+    return;
+  }
 
-    // Randomly assign role
-    const role = Math.random() < 0.5 ? 'Crewmate' : 'Imposter';
+  // Get the game's UUID (game_id) from the gameData
+  const gameId = gameData.id;
 
-    // Insert the new player into the players table
-    const { error: playerError } = await supabase
-      .from('players')
-      .insert([
-        {
-          game_id: code.trim(),
-          role: role,
-          created_at: new Date().toISOString(),
-          name: name,
-        },
-      ]);
+  // Randomly assign role
+  const role = Math.random() < 0.5 ? 'Crewmate' : 'Imposter';
 
-    if (playerError) {
-      console.error(playerError);
-      Alert.alert('Error joining game');
-    } else {
-      // Navigate to the Role screen with the assigned role
-      navigation.navigate('Role', { role, gameCode: code.trim() });
-    }
-  };
+  // Insert the new player into the players table
+  const { error: playerError } = await supabase
+    .from('players')
+    .insert([
+      {
+        game_id: gameId,  // Store the UUID in the players table
+        role: role,
+        created_at: new Date().toISOString(),
+        name: name,  // Name of the player
+      },
+    ]);
+
+  if (playerError) {
+    console.error(playerError);
+    Alert.alert('Error joining game');
+  } else {
+    // Navigate to the Role screen with the assigned role and game code
+    navigation.navigate('Role', { role, gameCode: code.trim() });
+  }
+};
 
   return (
     <SafeAreaView style={styles.container}>
