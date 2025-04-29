@@ -331,7 +331,6 @@ function CreateGameScreen({ navigation }) {
   };
 
   return (
-     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Start a New Round!</Text>
       <View style={styles.card}>
@@ -369,7 +368,6 @@ function CreateGameScreen({ navigation }) {
         )}
       </View>
     </SafeAreaView>
-</TouchableWithoutFeedback>
   );
 }
 
