@@ -43,7 +43,7 @@ const Chat = () => {
       <View style={styles.textline}>
         <TextInput
           style={styles.inputContainer}
-          placeholder="Type here to talk with other players!"
+          placeholder="Type here to talk with the game admin:"
           onChangeText={(newText) => setText(newText)}
           defaultValue={text}
           onSubmitEditing={handleSubmit}
