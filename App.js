@@ -8,6 +8,8 @@ import CrewMateMapView from './CrewMateMapView.js';
 import ImposterMapView from './ImposterMapView.js';
 import { useEffect } from 'react';
 import { supabase } from './supabase';
+import { TouchableWithoutFeedback } from 'react-native';
+import { Keyboard } from 'react-native';
 
 
 const Tab = createBottomTabNavigator();
