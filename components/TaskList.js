@@ -104,7 +104,6 @@ const TaskList = ({ gameId, userId }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>My Tasks</Text>
       <ScrollView style={styles.taskList}>
         {tasks.map((task) => {
           const status = getTaskStatus(task);
