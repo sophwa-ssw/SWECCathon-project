@@ -1,11 +1,50 @@
-# Sample Snack app
+# Husky Seeker
 
-Open the `App.js` file to start writing some code. You can preview the changes directly on your phone or tablet by scanning the **QR code** or use the iOS or Android emulators. When you're done, click **Save** and share the link!
+![Husky Seeker Logo](assets/kill_icon.png)
 
-When you're ready to see everything that Expo provides (or if you want to use your own editor) you can **Download** your project and use it with [expo cli](https://docs.expo.dev/get-started/installation/#expo-cli)).
+## Overview
 
-All projects created in Snack are publicly available, so you can easily share the link to this project via link, or embed it on a web page with the `<>` button.
+Husky Seeker is an innovative mobile game that combines elements of scavenger hunts, campus tours, and social deduction games into one engaging experience. Designed specifically for university campuses, it provides an interactive way for students to explore their campus while engaging in thrilling gameplay.
 
-If you're having problems, you can tweet to us [@expo](https://twitter.com/expo) or ask in our [forums](https://forums.expo.dev/c/expo-dev-tools/61) or [Discord](https://chat.expo.dev/).
+## Game Concept
 
-Snack is Open Source. You can find the code on the [GitHub repo](https://github.com/expo/snack).
+The game merges three key elements:
+- **Scavenger Hunt**: Players explore campus landmarks
+- **Educational Tour**: Learn interesting facts about campus locations
+- **Social Deduction**: Among Us-style gameplay with hidden imposters
+
+## Gameplay
+
+### For Crewmates
+- Navigate through campus to complete tasks
+- Visit landmarks and learn about campus history
+- Solve riddles and puzzles
+- Work together to identify and vote out imposters
+- Complete all tasks before being eliminated
+
+### For Imposters
+- Blend in with the crewmates
+- Track and eliminate other players
+- Sabotage tasks and create chaos
+- Avoid being identified and voted out
+
+## Technical Details
+
+- Built with React Native and Expo
+- Real-time multiplayer functionality
+- Location-based gameplay
+- Cross-platform support (iOS and Android)
+
+## Getting Started
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the development server:
+   ```bash
+   npm start
+   ```
+4. Scan the QR code with the Expo Go app to run on your device
+
