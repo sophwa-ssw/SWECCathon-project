@@ -4,7 +4,7 @@ import MapView, { Marker, Polygon } from 'react-native-maps';
 import * as Location from 'expo-location';
 import Tasks from './Tasks'; 
 import Emergency_Button from './Emergency_Button';
-import Chat from './Chat';
+import Kill from './Kill';
 
 const ImposterMapView = () => {
   const [location, setLocation] = useState(null);
@@ -84,7 +84,7 @@ const ImposterMapView = () => {
       {/* Conditionally render the new element */}
     {activeElement === 'emergency' && <Emergency_Button />}
     {activeElement === 'tasks' && <Tasks />}
-    {activeElement === 'chat' && <Chat />}
+    {activeElement === 'kill' && <Kill />}
 
 
 
@@ -104,7 +104,7 @@ const ImposterMapView = () => {
           />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.button3} onPress={() => setActiveElement(prev => prev === 'chat' ? null : 'chat')}>
+        <TouchableOpacity style={styles.button3} onPress={() => setActiveElement(prev => prev === 'kill' ? null : 'kill')}>
           <Image
             source={require('./assets/kill_icon.png')}
             style={styles.buttonImage}

@@ -5,6 +5,7 @@ import * as Location from 'expo-location';
 import Tasks from './Tasks'; 
 import Emergency_Button from './Emergency_Button';
 import Chat from './Chat';
+import PlayerID from './Player_ID';
 
 const CrewmateMapView = () => {
   const [location, setLocation] = useState(null);
@@ -85,6 +86,7 @@ const CrewmateMapView = () => {
     {activeElement === 'emergency' && <Emergency_Button />}
     {activeElement === 'tasks' && <Tasks />}
     {activeElement === 'chat' && <Chat />}
+    {activeElement === 'death' && <PlayerID />}
 
 
 
@@ -191,7 +193,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     position: 'absolute',
-    top: 610,
+    top: 50,
     left: 130
   },
   buttonImage: {
