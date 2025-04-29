@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Text, SafeAreaView, StyleSheet, TextInput, View, TouchableOpacity, FlatList, Alert, ScrollView } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -226,10 +226,8 @@ const joinGame = async () => {
 function GameScreen({ navigation }) {
   const [nameInputs, setNameInputs] = useState({}); // Tracks name input per game
   const [search, setSearch] = useState('');
+  const [games, setGames] = useState([]);
 
-  const filteredGames = games.filter(game => 
-    game.status === 'in_progress' && 
-    game.code.toLowerCase().includes(search.toLowerCase())
   useEffect(() => {
     const fetchGames = async () => {
       const { data, error } = await supabase
@@ -283,7 +281,7 @@ function GameScreen({ navigation }) {
           name,
           role,
           created_at: new Date().toISOString(),
-          game_id: item.id, // <-- use the UUID from the game item
+          game_id: item.id,
         },
       ]);
 
@@ -299,7 +297,6 @@ function GameScreen({ navigation }) {
     <SafeAreaView style={styles.listContainer}>
       <Text style={styles.header}>Available Games</Text>
 
-      {/* Search bar to filter games */}
       <TextInput
         style={styles.searchBar}
         placeholder="Search Games..."
@@ -308,7 +305,6 @@ function GameScreen({ navigation }) {
         onChangeText={setSearch}
       />
 
-      {/* Game list */}
       <FlatList
         data={filteredGames}
         keyExtractor={(item) => item.id.toString()}
@@ -329,7 +325,7 @@ function GameScreen({ navigation }) {
               placeholderTextColor="#666"
               value={nameInputs[item.id] || ''}
               onChangeText={(text) => handleNameChange(item.id, text)}
-              onSubmitEditing={() => joinGame(item)} // Press Enter to join
+              onSubmitEditing={() => joinGame(item)}
               returnKeyType="done"
             />
           </View>
@@ -346,9 +342,6 @@ function GameScreen({ navigation }) {
   );
 }
 
-
-
-
 const MapScreen = ({ route }) => {
   const role = route?.params?.role || 'Crewmate'; // default to Crewmate
 
@@ -358,8 +351,6 @@ const MapScreen = ({ route }) => {
     </View>
   );
 };
-
-
 
 function HelpScreen() {
   return (
@@ -371,7 +362,6 @@ function HelpScreen() {
     </SafeAreaView>
   );
 }
-
 
 function CreateGameScreen({ navigation }) {
   const [innocents, setInnocents] = useState('');
