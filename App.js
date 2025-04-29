@@ -10,6 +10,8 @@ import { useEffect } from 'react';
 import { supabase } from './supabase';
 import { TouchableWithoutFeedback } from 'react-native';
 import { Keyboard } from 'react-native';
+import Admin from './components/AdminView.js';
+
 
 
 const Tab = createBottomTabNavigator();
@@ -416,7 +418,7 @@ export default function App() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Tabs" component={MainTabs} />
         <Stack.Screen name="CreateGame" component={CreateGameScreen} />
-        <Stack.Screen name="GameSettings" component={GameSettingsScreen} />
+        <Stack.Screen name="GameSettings" component={Admin} />
         <Stack.Screen name="Role" component={RoleScreen} />
       </Stack.Navigator>
     </NavigationContainer>
