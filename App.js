@@ -5,9 +5,13 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MaterialIcons } from '@expo/vector-icons';
 import Map from './Map';
+import { useEffect } from 'react';
+import { supabase } from './supabase';
+
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
+
 
 function RoleScreen({ route, navigation }) {
   const { role, gameCode } = route.params;
@@ -27,8 +31,56 @@ function RoleScreen({ route, navigation }) {
   );
 }
 
+
+
+
 function HomeScreen({ navigation }) {
   const [code, setCode] = useState('');
+  const [name, setName] = useState('');
+
+  const joinGame = async () => {
+    if (!code.trim()) {
+      Alert.alert('Enter a code');
+      return;
+    }
+
+    // Check if the game with the entered code exists
+    const { data: gameData, error: gameError } = await supabase
+      .from('games')
+      .select('*')
+      .eq('code', code.trim())
+      .single();
+
+    if (gameError || !gameData) {
+      console.error(gameError);
+      Alert.alert('Game not found');
+      return;
+    }
+
+    // Randomly assign role
+    const role = Math.random() < 0.5 ? 'Crewmate' : 'Imposter';
+
+    // Insert the new player into the players table
+    const { error: playerError } = await supabase
+      .from('players')
+      .insert([
+        {
+          game_id: code.trim(),
+          role: role,
+          created_at: new Date().toISOString(),
+          name: name,
+        },
+      ]);
+
+    if (playerError) {
+      console.error(playerError);
+      Alert.alert('Error joining game');
+    } else {
+      // Navigate to the Role screen with the assigned role
+      navigation.navigate('Role', { role, gameCode: code.trim() });
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Husky Seeker</Text>
@@ -41,9 +93,16 @@ function HomeScreen({ navigation }) {
           value={code}
           onChangeText={setCode}
         />
+        <TextInput
+          style={styles.input}
+          placeholder= "Enter Name"
+          placeholderTextColor="#999"
+          value={name}
+          onChangeText={setName}
+        />
         <TouchableOpacity
           style={styles.blackButton}
-          onPress={() => code.trim() ? navigation.navigate('Role', { role: Math.random() < 0.5 ? 'Crewmate' : 'Imposter', gameCode: code }) : Alert.alert('Enter a code')}
+          onPress={joinGame}
         >
           <Text style={styles.blackButtonText}>Join Game With Code</Text>
         </TouchableOpacity>
@@ -73,25 +132,37 @@ function HomeScreen({ navigation }) {
   );
 }
 
+
+
 function GameScreen({ navigation, route }) {
   const { code } = route.params || {};
-  const sampleGames = [
-    { id: '1', name: 'One' },
-    { id: '2', name: 'Two' },
-    { id: '3', name: 'Three' },
-  ];
-  const games = code
-    ? [{ id: 'code', name: `Join Game: ${code}` }]
-    : sampleGames;
-
+  const [games, setGames] = useState([]);
   const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    const fetchGames = async () => {
+      const { data, error } = await supabase
+        .from('games')
+        .select('*')
+        .eq('status', 'in_progress'); // only get games that are 'in_progress'
+
+      if (error) {
+        console.error('Error fetching games:', error);
+      } else {
+        setGames(data || []);
+      }
+    };
+
+    fetchGames();
+  }, []);
+
   const filteredGames = games.filter(item =>
-    item.name.toLowerCase().includes(search.toLowerCase())
+    item.code.toLowerCase().includes(search.toLowerCase())
   );
 
   const handlePress = (item) => {
     const role = Math.random() < 0.5 ? 'Crewmate' : 'Imposter';
-    const gameCode = code || item.id;
+    const gameCode = code || item.code;
     navigation.navigate('Role', { role, gameCode });
   };
 
@@ -107,20 +178,22 @@ function GameScreen({ navigation, route }) {
       />
       <FlatList
         data={filteredGames}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.listItem}
             onPress={() => handlePress(item)}
           >
-            <Text style={styles.listItemText}>{item.name}</Text>
+            <Text style={styles.listItemText}>Game Code: {item.code}</Text>
           </TouchableOpacity>
         )}
       />
     </SafeAreaView>
   );
 }
+
+
 
 function MapScreen({ route }) {
   const role = route?.params?.role ?? 'Player';
@@ -130,6 +203,7 @@ function MapScreen({ route }) {
     </SafeAreaView>
   );
 }
+
 
 function HelpScreen() {
   return (
@@ -142,12 +216,42 @@ function HelpScreen() {
   );
 }
 
+
 function CreateGameScreen({ navigation }) {
   const [innocents, setInnocents] = useState('');
   const [tasks, setTasks] = useState('');
   const [imposters, setImposters] = useState('');
 
   const isFormComplete = innocents && tasks && imposters;
+
+  const createGame = async () => {
+    // Generate a unique game code
+    const gameCode = Math.random().toString(36).substr(2, 6).toUpperCase();
+
+    const { data, error } = await supabase
+      .from('games')
+      .insert([
+        {
+          code: gameCode,
+          max_players: Number(innocents) + Number(imposters), 
+          current_players: 0, 
+          imposters: Number(imposters),
+          tasks: Number(tasks),
+          status: 'in_progress',  
+          created_at: new Date().toISOString(), 
+          updated_at: new Date().toISOString(),
+        },
+      ]);
+
+    if (error) {
+      console.error(error);
+      Alert.alert('Error creating game');
+    } else {
+      console.log('Game created!', data);
+      // Navigate to GameSettings screen or wherever you want after creating the game
+      navigation.navigate('GameSettings', { gameCode });
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -181,7 +285,7 @@ function CreateGameScreen({ navigation }) {
           onChangeText={setImposters}
         />
         {isFormComplete && (
-          <TouchableOpacity style={styles.blackButton} onPress={() => navigation.navigate('GameSettings')}>
+          <TouchableOpacity style={styles.blackButton} onPress={createGame}>
             <Text style={styles.blackButtonText}>Continue</Text>
           </TouchableOpacity>
         )}
@@ -189,6 +293,8 @@ function CreateGameScreen({ navigation }) {
     </SafeAreaView>
   );
 }
+
+
 
 function GameSettingsScreen() {
   return (
@@ -198,6 +304,7 @@ function GameSettingsScreen() {
     </SafeAreaView>
   );
 }
+
 
 function MainTabs() {
   return (
@@ -221,6 +328,7 @@ function MainTabs() {
   );
 }
 
+
 export default function App() {
   return (
     <NavigationContainer>
@@ -233,6 +341,7 @@ export default function App() {
     </NavigationContainer>
   );
 }
+
 
 const styles = StyleSheet.create({
   // placeholder
