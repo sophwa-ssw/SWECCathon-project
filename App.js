@@ -4,7 +4,8 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MaterialIcons } from '@expo/vector-icons';
-import Map from './Map';
+import CrewMateMapView from './CrewMateMapView.js';
+import ImposterMapView from './ImposterMapView.js';
 import { useEffect } from 'react';
 import { supabase } from './supabase';
 
@@ -38,7 +39,7 @@ function HomeScreen({ navigation }) {
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
 
-  const joinGame = async () => {
+const joinGame = async () => {
   if (!code.trim()) {
     Alert.alert('Enter a code');
     return;
@@ -47,7 +48,7 @@ function HomeScreen({ navigation }) {
   // Check if the game with the entered code exists and get the UUID of that game
   const { data: gameData, error: gameError } = await supabase
     .from('games')
-    .select('id')  // Select only the id (UUID) from the games table
+    .select('id, max_players')  // Select the id (UUID) and max_players from the games table
     .eq('code', code.trim())
     .single();
 
@@ -57,8 +58,27 @@ function HomeScreen({ navigation }) {
     return;
   }
 
-  // Get the game's UUID (game_id) from the gameData
+  // Get the game's UUID (game_id) and max_players from the gameData
   const gameId = gameData.id;
+  const maxPlayers = gameData.max_players;
+
+  // Check how many players are currently in the game
+  const { data: playersData, error: playersError } = await supabase
+    .from('players')
+    .select('id')  // Select only the ids of players in this game
+    .eq('game_id', gameId);
+
+  if (playersError) {
+    console.error(playersError);
+    Alert.alert('Error checking current players');
+    return;
+  }
+
+  // If the number of players has reached the maximum, alert the user and return
+  if (playersData.length >= maxPlayers) {
+    Alert.alert('The game is full. Please join a different game.');
+    return;
+  }
 
   // Randomly assign role
   const role = Math.random() < 0.5 ? 'Crewmate' : 'Imposter';
@@ -83,6 +103,7 @@ function HomeScreen({ navigation }) {
     navigation.navigate('Role', { role, gameCode: code.trim() });
   }
 };
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -140,6 +161,7 @@ function HomeScreen({ navigation }) {
 function GameScreen({ navigation, route }) {
   const { code } = route.params || {};
   const [games, setGames] = useState([]);
+  const [nameInputs, setNameInputs] = useState({}); // Tracks name input per game
   const [search, setSearch] = useState('');
 
   useEffect(() => {
@@ -147,7 +169,7 @@ function GameScreen({ navigation, route }) {
       const { data, error } = await supabase
         .from('games')
         .select('*')
-        .eq('status', 'in_progress'); // only get games that are 'in_progress'
+        .eq('status', 'in_progress');
 
       if (error) {
         console.error('Error fetching games:', error);
@@ -163,15 +185,55 @@ function GameScreen({ navigation, route }) {
     item.code.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handlePress = (item) => {
+  const handleNameChange = (gameId, value) => {
+    setNameInputs(prev => ({ ...prev, [gameId]: value }));
+  };
+
+  const joinGame = async (item) => {
+    const name = nameInputs[item.id]?.trim();
+    if (!name) {
+      Alert.alert('Please enter a name');
+      return;
+    }
+
+    const { data: gameData, error: gameError } = await supabase
+      .from('games')
+      .select('*')
+      .eq('code', item.code)
+      .single();
+
+    if (gameError || !gameData) {
+      console.error(gameError);
+      Alert.alert('Game not found');
+      return;
+    }
+
     const role = Math.random() < 0.5 ? 'Crewmate' : 'Imposter';
-    const gameCode = code || item.code;
-    navigation.navigate('Role', { role, gameCode });
+
+    const { error: playerError } = await supabase
+      .from('players')
+      .insert([
+        {
+          name,
+          role,
+          created_at: new Date().toISOString(),
+          game_id: item.id, // <-- use the UUID from the game item
+        },
+      ]);
+
+    if (playerError) {
+      console.error(playerError);
+      Alert.alert('Error joining game');
+    } else {
+      navigation.navigate('Role', { role, gameCode: item.code });
+    }
   };
 
   return (
     <SafeAreaView style={styles.listContainer}>
       <Text style={styles.header}>Available Games</Text>
+
+      {/* Search bar to filter games */}
       <TextInput
         style={styles.searchBar}
         placeholder="Search Games..."
@@ -179,17 +241,26 @@ function GameScreen({ navigation, route }) {
         value={search}
         onChangeText={setSearch}
       />
+
+      {/* Game list */}
       <FlatList
         data={filteredGames}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.listItem}
-            onPress={() => handlePress(item)}
-          >
+          <View style={styles.listItem}>
             <Text style={styles.listItemText}>Game Code: {item.code}</Text>
-          </TouchableOpacity>
+
+            <TextInput
+              style={styles.searchBar}
+              placeholder="Enter Name"
+              placeholderTextColor="#666"
+              value={nameInputs[item.id] || ''}
+              onChangeText={(text) => handleNameChange(item.id, text)}
+              onSubmitEditing={() => joinGame(item)} // Press Enter to join
+              returnKeyType="done"
+            />
+          </View>
         )}
       />
     </SafeAreaView>
@@ -198,14 +269,17 @@ function GameScreen({ navigation, route }) {
 
 
 
-function MapScreen({ route }) {
-  const role = route?.params?.role ?? 'Player';
+
+const MapScreen = ({ route }) => {
+  const role = route?.params?.role || 'Crewmate'; // default to Crewmate
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }}>
-      <Map />
-    </SafeAreaView>
+    <View style={{ flex: 1 }}>
+      {role === 'Crewmate' ? <CrewMateMapView /> : <ImposterMapView />}
+    </View>
   );
-}
+};
+
 
 
 function HelpScreen() {
