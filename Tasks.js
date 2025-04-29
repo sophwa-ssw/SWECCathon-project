@@ -1,10 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import TaskList from './components/TaskList'; // Adjust path as needed
 
-const Tasks = () => {
+const Tasks = ({ gameId, userId }) => {
   return (
     <View style={styles.newElement}>
       <Text style={styles.text}>Tasks</Text>
+      <TaskList gameId={gameId} userId={userId} />
     </View>
   );
 };
@@ -21,9 +23,11 @@ const styles = StyleSheet.create({
     top: 440,
     left: 15,
     alignItems: 'center',
+    padding: 10,
   },
   text: {
-    fontSize: 30
+    fontSize: 30,
+    marginBottom: 10,
   }
 });
 
