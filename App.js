@@ -43,71 +43,70 @@ function HomeScreen({ navigation }) {
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
 
-const joinGame = async () => {
-  if (!code.trim()) {
-    Alert.alert('Enter a code');
-    return;
-  }
+  const joinGame = async () => {
+    if (!code.trim()) {
+      Alert.alert('Enter a code');
+      return;
+    }
 
-  // Check if the game with the entered code exists and get the UUID of that game
-  const { data: gameData, error: gameError } = await supabase
-    .from('games')
-    .select('id, max_players')  // Select the id (UUID) and max_players from the games table
-    .eq('code', code.trim())
-    .single();
+    // Check if the game with the entered code exists and get the UUID of that game
+    const { data: gameData, error: gameError } = await supabase
+      .from('games')
+      .select('id, max_players')  // Select the id (UUID) and max_players from the games table
+      .eq('code', code.trim())
+      .single();
 
-  if (gameError || !gameData) {
-    console.error(gameError);
-    Alert.alert('Game not found');
-    return;
-  }
+    if (gameError || !gameData) {
+      console.error(gameError);
+      Alert.alert('Game not found');
+      return;
+    }
 
-  // Get the game's UUID (game_id) and max_players from the gameData
-  const gameId = gameData.id;
-  const maxPlayers = gameData.max_players;
+    // Get the game's UUID (game_id) and max_players from the gameData
+    const gameId = gameData.id;
+    const maxPlayers = gameData.max_players;
 
-  // Check how many players are currently in the game
-  const { data: playersData, error: playersError } = await supabase
-    .from('players')
-    .select('id')  // Select only the ids of players in this game
-    .eq('game_id', gameId);
+    // Check how many players are currently in the game
+    const { data: playersData, error: playersError } = await supabase
+      .from('players')
+      .select('id')  // Select only the ids of players in this game
+      .eq('game_id', gameId);
 
-  if (playersError) {
-    console.error(playersError);
-    Alert.alert('Error checking current players');
-    return;
-  }
+    if (playersError) {
+      console.error(playersError);
+      Alert.alert('Error checking current players');
+      return;
+    }
 
-  // If the number of players has reached the maximum, alert the user and return
-  if (playersData.length >= maxPlayers) {
-    Alert.alert('The game is full. Please join a different game.');
-    return;
-  }
+    // If the number of players has reached the maximum, alert the user and return
+    if (playersData.length >= maxPlayers) {
+      Alert.alert('The game is full. Please join a different game.');
+      return;
+    }
 
-  // Randomly assign role
-  const role = Math.random() < 0.5 ? 'Crewmate' : 'Imposter';
+    // Randomly assign role
+    const role = Math.random() < 0.5 ? 'Crewmate' : 'Imposter';
 
-  // Insert the new player into the players table
-  const { error: playerError } = await supabase
-    .from('players')
-    .insert([
-      {
-        game_id: gameId,  // Store the UUID in the players table
-        role: role,
-        created_at: new Date().toISOString(),
-        name: name,  // Name of the player
-      },
-    ]);
+    // Insert the new player into the players table
+    const { error: playerError } = await supabase
+      .from('players')
+      .insert([
+        {
+          game_id: gameId,  // Store the UUID in the players table
+          role: role,
+          created_at: new Date().toISOString(),
+          name: name,  // Name of the player
+        },
+      ]);
 
-  if (playerError) {
-    console.error(playerError);
-    Alert.alert('Error joining game');
-  } else {
-    // Navigate to the Role screen with the assigned role and game code
-    navigation.navigate('Role', { role, gameCode: code.trim() });
-  }
-};
-
+    if (playerError) {
+      console.error(playerError);
+      Alert.alert('Error joining game');
+    } else {
+      // Navigate to the Role screen with the assigned role and game code
+      navigation.navigate('Role', { role, gameCode: code.trim() });
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -322,58 +321,64 @@ function CreateGameScreen({ navigation }) {
           created_at: new Date().toISOString(), 
           updated_at: new Date().toISOString(),
         },
-      ]);
+      ])
+      .select()
+      .single();
 
     if (error) {
       console.error(error);
       Alert.alert('Error creating game');
     } else {
       console.log('Game created!', data);
-      // Navigate to GameSettings screen or wherever you want after creating the game
-      navigation.navigate('GameSettings', { gameCode });
+      // Navigate to AdminView with the required parameters
+      navigation.navigate('Admin', { 
+        gameCode: gameCode,
+        games: [data],
+        userContext: { currentGame: data, role: 'admin' }
+      });
     }
   };
 
   return (
-     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Start a New Round!</Text>
-      <View style={styles.card}>
-        <Text style={styles.label2}>Number of Innocents:</Text>
-        <TextInput
-          style={styles.input}
-          keyboardType="numeric"
-          placeholder="e.g. 5"
-          placeholderTextColor="#999"
-          value={innocents}
-          onChangeText={setInnocents}
-        />
-        <Text style={styles.label2}>Number of Tasks:</Text>
-        <TextInput
-          style={styles.input}
-          keyboardType="numeric"
-          placeholder="e.g. 10"
-          placeholderTextColor="#999"
-          value={tasks}
-          onChangeText={setTasks}
-        />
-        <Text style={styles.label2}>Number of Imposters:</Text>
-        <TextInput
-          style={styles.input}
-          keyboardType="numeric"
-          placeholder="e.g. 2"
-          placeholderTextColor="#999"
-          value={imposters}
-          onChangeText={setImposters}
-        />
-        {isFormComplete && (
-          <TouchableOpacity style={styles.blackButton} onPress={createGame}>
-            <Text style={styles.blackButtonText}>Continue</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </SafeAreaView>
-</TouchableWithoutFeedback>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <SafeAreaView style={styles.container}>
+        <Text style={styles.title}>Start a New Round!</Text>
+        <View style={styles.card}>
+          <Text style={styles.label2}>Number of Innocents:</Text>
+          <TextInput
+            style={styles.input}
+            keyboardType="numeric"
+            placeholder="e.g. 5"
+            placeholderTextColor="#999"
+            value={innocents}
+            onChangeText={setInnocents}
+          />
+          <Text style={styles.label2}>Number of Tasks:</Text>
+          <TextInput
+            style={styles.input}
+            keyboardType="numeric"
+            placeholder="e.g. 10"
+            placeholderTextColor="#999"
+            value={tasks}
+            onChangeText={setTasks}
+          />
+          <Text style={styles.label2}>Number of Imposters:</Text>
+          <TextInput
+            style={styles.input}
+            keyboardType="numeric"
+            placeholder="e.g. 2"
+            placeholderTextColor="#999"
+            value={imposters}
+            onChangeText={setImposters}
+          />
+          {isFormComplete && (
+            <TouchableOpacity style={styles.blackButton} onPress={createGame}>
+              <Text style={styles.blackButtonText}>Continue</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </SafeAreaView>
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -418,7 +423,7 @@ export default function App() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Tabs" component={MainTabs} />
         <Stack.Screen name="CreateGame" component={CreateGameScreen} />
-        <Stack.Screen name="GameSettings" component={Admin} />
+        <Stack.Screen name="Admin" component={Admin} />
         <Stack.Screen name="Role" component={RoleScreen} />
       </Stack.Navigator>
     </NavigationContainer>
